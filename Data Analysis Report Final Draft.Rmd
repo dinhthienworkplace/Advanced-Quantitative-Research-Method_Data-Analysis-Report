@@ -1,0 +1,104 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(mosaic)
+library(car)
+library(broom)
+library(tidyverse)
+library(lme4)
+library(readxl)
+library(writexl)
+```
+
+```{r}
+inequality = read_excel("Data.xlsx")
+inequality <- transform(inequality,GII = as.numeric(GII))
+inequality <- transform(inequality,Gini = as.numeric(Gini))
+inequality <- transform(inequality,HDI.group = as.factor(HDI.group))
+drop_na(inequality)
+```
+#Describing variables
+```{r}
+str(inequality)
+```
+##GII:
+```{r}
+GII.summary = favstats(~ GII|HDI.group, data = inequality)
+dotPlot(~ GII|HDI.group, data = inequality, main = "Dotplot of GII", xlab = "GII")
+histogram(~ GII|HDI.group, data = inequality, main = "Histogram of GII", xlab = "GII", type = "count")
+bwplot(~ GII|HDI.group, data = inequality, main = "Boxplot of GII", xlab = "GII", outer = TRUE)
+```
+##HDI:
+```{r}
+HDI.summary = favstats(~ HDI, data = inequality)
+dotPlot(~ HDI, data = inequality, main = "Dotplot of HDI", xlab = "HDI")
+histogram(~ HDI, data = inequality, main = "Histogram of HDI", xlab = "HDI", type = "count")
+bwplot(~ HDI, data = inequality, main = "Boxplot of HDI", xlab = "HDI", outer = TRUE)
+```
+##Gini coefficient:
+```{r}
+Gini.summary = favstats(~ Gini|HDI.group, data = inequality)
+dotPlot(~ Gini|HDI.group, data = inequality, main = "Dotplot of Gini", xlab = "Gini")
+histogram(~ Gini|HDI.group, data = inequality, main = "Histogram of Gini", xlab = "Gini", type = "count")
+bwplot(~ Gini|HDI.group, data = inequality, main = "Boxplot of Gini", xlab = "Gini", outer = TRUE)
+```
+##Relationship
+```{r}
+xyplot(GII ~ Gini, data = inequality, main = "Scatterplot between GII and Gini", xlab = "Gini", ylab = "GII", type = c("p","r"))
+
+xyplot(GII ~ HDI, data = inequality, main = "Scatterplot between GII and HDI", xlab = "HDI", ylab = "GII", type = c("p","r"))
+
+xyplot(Gini ~ HDI, data = inequality, main = "Scatterplot between Gini and HDI", xlab = "HDI", ylab = "Gini", type = c("p","r"))
+
+scatterplotMatrix(~ GII + HDI + Gini|HDI.group, data = inequality)
+```
+###correlation
+```{r}
+cor.test(GII ~ Gini, data = inequality)
+cor.test(GII ~ HDI, data = inequality)
+cor.test(Gini ~ HDI, data = inequality)
+```
+
+#Linear model
+##Research model
+```{r}
+GII.mod = lm(GII ~ HDI + Gini, data = inequality)
+summary(GII.mod)
+```
+###Testing the multicollinearity
+```{r}
+vif(GII.mod)
+```
+All are below 5, so we can include all of them to the model without having concern about multicollinearity.
+
+##Testing the model's significance
+```{r}
+GII.mod.reduced = lm(GII ~ 1, data = inequality)
+summary(GII.mod.reduced)
+```
+###ANOVA
+```{r}
+anova(GII.mod.reduced, GII.mod)
+```
+Due to the above error caused by the NA values, I created another model, which dropped out the NA values, to test the significance of the model. Comparing the model summary, this dropping action's effect may be neglectable.
+```{r}
+ineq_nona = na.omit(inequality)
+model1nona = lm(GII ~ HDI + Gini, data = ineq_nona)
+summary(model1nona)
+model2nona = lm(GII ~ 1, data = ineq_nona)
+summary(model2nona)
+anova(model2nona, model1nona)
+```
+##Testing the assumption
+```{r}
+plot(model1nona, which = 1)
+plot(model1nona, which = 2)
+```
+
+
+
+
+
+
+
+
